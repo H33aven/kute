@@ -1,0 +1,68 @@
+{
+  "name": "kute",
+  "version": "1.1.4",
+  "description": "kute-player",
+  "main": "main.js",
+  "homepage": "https://github.com/H33aven/kute-player",
+  "author": "jaso",
+  "scripts": {
+    "kute": "electron .",
+    "build-linux": "electron-builder --linux",
+    "start": "electron ."
+  },
+  "keywords": [
+    "music",
+    "player",
+    "mp3",
+    "electron"
+  ],
+  "license": "ISC",
+  "dependencies": {
+    "@xhayper/discord-rpc": "^1.3.3",
+    "discord-rpc": "^4.0.1",
+    "music-metadata": "^11.10.5",
+    "node-id3": "^0.2.8"
+  },
+  "devDependencies": {
+    "electron": "^39.7.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "compression": "normal",
+    "asar": true,
+    "directories": {
+      "output": "kute-releases"
+    },
+    "files": [
+      "main.js",
+      "renderer.js",
+      "index.html",
+      "styles.css",
+      "config.js",
+      "package.json",
+      "node_modules/",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,test,__tests__,tests,powered-test,example,examples,doc,docs}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,suo,user}",
+      "!**/._*",
+      "!**/.{git,svn,hg,DS_Store}",
+      "!**/{.github,.vscode,.idea,Thumbs.db}",
+      "!**/*.{js.map,ts,tsx,scss,sass,less,styl,md,markdown,txt,log}",
+      "!**/{test,tests,spec,specs}",
+      "!**/package-lock.json",
+      "!**/yarn.lock"
+    ],
+    "appId": "com.kute.player",
+    "productName": "Kute",
+    "linux": {
+      "target": [
+        "pacman",
+        "AppImage"
+      ],
+      "electronDist": "/usr/lib/electron34",
+      "electronVersion": "34.0.0",
+      "category": "AudioVideo"
+    }
+  }
+}

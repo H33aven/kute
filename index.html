@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kute</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="prevent-select">
+    <input type="file" id="folder-input" webkitdirectory directory multiple style="display: none;">
+    <div class="app-container">
+        <div class="window-header" id="window-header" data-tauri-drag-region>
+            <div class="header-left">
+                <i class="fas fa-music"></i>
+                <span>kute</span>
+            </div>
+            <div class="header-right">
+                <div class="window-controls">
+                    <button class="win-btn maximize" id="maximize-btn" title="Maximize">
+                        <i class="fas fa-square"></i>
+                    </button>
+                    <button class="win-btn close" id="close-btn" title="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="player-section">
+                <div class="top-left-buttons">
+                    <button id="edit-metadata-btn" class="edit-metadata-btn" title="Edit track metadata">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button id="lyrics-btn-small" class="lyrics-btn" title="Show lyrics">
+                        <i class="fas fa-file-alt"></i>
+                    </button>
+                    <button id="shortcuts-btn-small" class="shortcuts-btn" title="Keyboard shortcuts">
+                        <i class="fas fa-keyboard"></i>
+                    </button>
+                </div>
+
+                <div class="album-art-small" id="album-art-small">
+                    <i class="fas fa-music"></i>
+                </div>
+
+                <div class="track-info-small">
+                    <div id="track-title-small" class="track-title-small">No track</div>
+                    <div class="track-artist-small">
+                        <span id="track-artist-small">Select library</span>
+                    </div>
+                </div>
+
+                <div id="lyrics-modal" class="lyrics-modal">
+                    <div class="lyrics-overlay">
+                        <div class="lyrics-content">
+                            <textarea id="lyrics-textarea" placeholder="Lyrics will appear here..."></textarea>
+                        </div>
+                        <div class="lyrics-actions">
+                            <button id="lyrics-load-btn" class="lyrics-action-btn" title="Load from file">
+                                <i class="fas fa-folder-open"></i>
+                            </button>
+                            <button id="lyrics-save-btn" class="lyrics-action-btn" title="Edit / Save">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button id="lyrics-close-btn" class="lyrics-action-btn" title="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="metadata-modal" class="metadata-modal">
+                    <div class="metadata-modal-content">
+                        <div class="metadata-modal-header">
+                            <h3 id="metadata-modal-title">Edit Track Metadata</h3>
+                            <button class="metadata-modal-close" title="Close"></button>
+                        </div>
+                        <div class="metadata-modal-body">
+                            <div class="metadata-cover-section">
+                                <div id="metadata-cover-preview" class="metadata-cover-preview">
+                                    <i class="fas fa-music"></i>
+                                </div>
+                                <input type="file" id="metadata-cover-input" accept="image/*" style="display: none;">
+                                <button id="metadata-cover-btn" class="metadata-cover-btn">
+                                    <i class="fas fa-image"></i> Change Cover
+                                </button>
+                            </div>
+                            <div class="metadata-fields">
+                                <div class="metadata-field">
+                                    <label for="metadata-title"><i class="fas fa-heading"></i> Title</label>
+                                    <input type="text" id="metadata-title" class="metadata-input"
+                                        placeholder="Track title">
+                                </div>
+                                <div class="metadata-field">
+                                    <label for="metadata-artist"><i class="fas fa-user"></i> Artist</label>
+                                    <input type="text" id="metadata-artist" class="metadata-input"
+                                        placeholder="Artist name">
+                                </div>
+                                <div class="metadata-field">
+                                    <label for="metadata-album"><i class="fas fa-compact-disc"></i> Album</label>
+                                    <input type="text" id="metadata-album" class="metadata-input"
+                                        placeholder="Album name">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metadata-modal-footer">
+                            <button id="metadata-save-btn" class="metadata-btn-save">
+                                <i class="fas fa-save"></i>
+                            </button>
+                            <button id="metadata-cancel-btn" class="metadata-btn-cancel">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="shortcuts-modal" class="shortcuts-modal">
+                    <div class="shortcuts-overlay">
+                        <div class="shortcuts-content">
+                            <div class="shortcuts-text">
+                                <h3>Keyboard Shortcuts</h3>
+                                <ul>
+                                    <li><kbd>Space</kbd> - Play / Pause</li>
+                                    <li><kbd>←</kbd> / <kbd>→</kbd> - Previous / Next track</li>
+                                    <li><kbd>Ctrl+X</kbd> - Edit metadata</li>
+                                    <li><kbd>Ctrl+Shift+E</kbd> - Edit playlist order</li>
+                                    <li><kbd>Ctrl+S</kbd> - Save lyrics / metadata</li>
+                                    <li><kbd>Ctrl+D</kbd> - Show lyrics</li>
+                                    <li><kbd>Ctrl+A</kbd> - Open shortcuts</li>
+                                    <li><kbd>Esc</kbd> - Close menu</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="shortcuts-actions">
+                            <button id="shortcuts-close-btn" class="shortcuts-action-btn" title="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-controls-container">
+                    <div class="player-controls-small">
+                        <button id="prev-btn-small" class="ctrl-btn-small" title="Previous">
+                            <i class="fas fa-step-backward"></i>
+                        </button>
+                        <button id="play-btn-small" class="ctrl-btn-small play-small" title="Play">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button id="pause-btn-small" class="ctrl-btn-small pause-small" title="Pause"
+                            style="display: none;">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button id="next-btn-small" class="ctrl-btn-small" title="Next">
+                            <i class="fas fa-step-forward"></i>
+                        </button>
+                        <button id="repeat-btn-small" class="ctrl-btn-small" title="Repeat">
+                            <i class="fa-solid fa-repeat"></i>
+                        </button>
+                    </div>
+                    <div class="progress-container-small">
+                        <span id="current-time-small" class="time-small">0:00</span>
+                        <input type="range" id="progress-small" class="progress-slider-small" min="0" max="100"
+                            value="0">
+                        <span id="duration-small" class="time-small">0:00</span>
+                    </div>
+                    <div class="volume-container-small">
+                        <i class="fas fa-volume-up volume-icon-small"></i>
+                        <input type="range" id="volume-small" class="volume-slider-small" min="0" max="100" value="80">
+                    </div>
+                </div>
+            </div>
+
+            <div class="library-section">
+                <div class="library-header">
+                    <div class="search-container">
+                        <div class="search-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="track-search" placeholder="Search tracks..." autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button id="select-library-small" class="lib-btn" title="Select Music Folder">
+                            <i class="fas fa-folder-plus"></i> <span class="btn-text">Select</span>
+                        </button>
+                        <button id="edit-playlist-btn" class="lib-btn edit-playlist-btn" title="Edit playlist order">
+                            <i class="fas fa-edit"></i> <span class="btn-text">Edit</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="playlist-container-small" id="track-list-small">
+                    <div class="empty-state-small">
+                        <i class="fas fa-folder-open"></i>
+                        <p>No music folder selected</p>
+                        <small>Click "Select" to choose your music library</small>
+                    </div>
+                </div>
+                <div class="status-bar">
+                    <span id="track-count">0 tracks</span>
+                    <span id="repeat-status" class="repeat-status"></span>
+                    <span id="library-path-small" class="library-path-small">No library</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+
+</html>
