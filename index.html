@@ -33,14 +33,17 @@
         <div class="app-content">
             <div class="player-section">
                 <div class="top-left-buttons">
-                    <button id="edit-metadata-btn" class="edit-metadata-btn" title="Edit track metadata">
-                        <i class="fas fa-edit"></i>
-                    </button>
                     <button id="lyrics-btn-small" class="lyrics-btn" title="Show lyrics">
                         <i class="fas fa-file-alt"></i>
                     </button>
                     <button id="shortcuts-btn-small" class="shortcuts-btn" title="Keyboard shortcuts">
                         <i class="fas fa-keyboard"></i>
+                    </button>
+                    <button id="edit-metadata-btn" class="edit-metadata-btn" title="Edit track metadata">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button id="settings-btn-small" class="settings-btn" title="Settings">
+                        <i class="fas fa-cog"></i>
                     </button>
                 </div>
 
@@ -132,12 +135,55 @@
                                     <li><kbd>Ctrl+S</kbd> - Save lyrics / metadata</li>
                                     <li><kbd>Ctrl+D</kbd> - Show lyrics</li>
                                     <li><kbd>Ctrl+A</kbd> - Open shortcuts</li>
+                                    <li><kbd>Ctrl+E</kbd> - Open settings</li>
                                     <li><kbd>Esc</kbd> - Close menu</li>
                                 </ul>
                             </div>
                         </div>
                         <div class="shortcuts-actions">
                             <button id="shortcuts-close-btn" class="shortcuts-action-btn" title="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="settings-modal" class="settings-modal">
+                    <div class="settings-overlay">
+                        <div class="settings-container">
+                            <div class="settings-header">
+                                <h3>Settings</h3>
+                            </div>
+                            <div class="settings-body">
+                                <div class="settings-section">
+                                    <div class="settings-section-title">Integrations</div>
+                                    <div class="settings-option">
+                                        <label class="switch-label">
+                                            <span class="switch-text">Discord Rich Presence</span>
+                                            <div class="switch">
+                                                <input type="checkbox" id="discord-rpc-toggle">
+                                                <span class="slider"></span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="settings-section">
+                                    <div class="settings-section-title">Appearance</div>
+                                    <div class="settings-option">
+                                        <label class="switch-label">
+                                            <span class="switch-text">Light Theme</span>
+                                            <div class="switch">
+                                                <input type="checkbox" id="theme-toggle">
+                                                <span class="slider"></span>
+                                            </div>
+                                        </label>
+                                        <div class="settings-note">Switch between light and dark mode</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="settings-actions">
+                            <button id="settings-close-btn" class="settings-action-btn" title="Close">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>

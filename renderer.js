@@ -71,6 +71,14 @@ const shortcutsBtn = document.getElementById('shortcuts-btn-small');
 const shortcutsModal = document.getElementById('shortcuts-modal');
 const shortcutsCloseBtn = document.getElementById('shortcuts-close-btn');
 
+const settingsBtn = document.getElementById('settings-btn-small');
+const settingsModal = document.getElementById('settings-modal');
+const settingsCloseBtn = document.getElementById('settings-close-btn');
+const discordRpcToggle = document.getElementById('discord-rpc-toggle');
+const themeToggle = document.getElementById('theme-toggle');
+let discordRpcEnabled = true;
+let currentTheme = 'dark';
+
 let currentCoverFile = null;
 
 if (!fs.existsSync(LYRICS_DIR)) fs.mkdirSync(LYRICS_DIR, { recursive: true });
@@ -78,6 +86,7 @@ if (!fs.existsSync(LYRICS_DIR)) fs.mkdirSync(LYRICS_DIR, { recursive: true });
 let presenceStartTimestamp = null;
 
 function updateDiscordPresence() {
+    if (!discordRpcEnabled) return;
     if (!isPlaying) {
         ipcRenderer.send('update-presence', null);
         return;
@@ -94,6 +103,15 @@ function updateDiscordPresence() {
     ipcRenderer.send('update-presence', activity);
 }
 
+function applyTheme(theme) {
+    if (theme === 'light') {
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+    }
+    currentTheme = theme;
+}
+
 document.getElementById('maximize-btn').addEventListener('click', () => ipcRenderer.send('maximize-window'));
 document.getElementById('close-btn').addEventListener('click', () => ipcRenderer.send('close-window'));
 
@@ -105,7 +123,7 @@ selectLibraryBtn.addEventListener('click', async () => {
             libraryPath.textContent = folderPath.split('/').pop() || folderPath;
             coverCache.clear();
             loadTracksFromFolder(folderPath);
-            config.saveSettings(volumeSlider.value, libraryFolder, repeatMode);
+            config.saveSettings(volumeSlider.value, libraryFolder, repeatMode, discordRpcEnabled, currentTheme);
         }
     } catch (error) {
         showNotification('Error loading library');
@@ -380,7 +398,7 @@ function toggleRepeat() {
     } else {
         document.getElementById('repeat-status').textContent = 'repeat mode:  none';
     }
-    config.saveSettings(volumeSlider.value, libraryFolder, repeatMode);
+    config.saveSettings(volumeSlider.value, libraryFolder, repeatMode, discordRpcEnabled, currentTheme);
 }
 
 function showNotification(message, duration = 3000) {
@@ -770,6 +788,43 @@ shortcutsModal.addEventListener('click', (e) => {
     if (e.target === shortcutsModal) closeShortcuts();
 });
 
+function openSettingsModal() {
+    settingsModal.style.display = 'flex';
+    setTimeout(() => settingsModal.classList.add('show'), 10);
+}
+
+function closeSettingsModal() {
+    settingsModal.classList.remove('show');
+    setTimeout(() => {
+        settingsModal.style.display = 'none';
+    }, 300);
+}
+
+settingsBtn.addEventListener('click', openSettingsModal);
+settingsCloseBtn.addEventListener('click', closeSettingsModal);
+settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) closeSettingsModal();
+});
+
+discordRpcToggle.addEventListener('change', (e) => {
+    discordRpcEnabled = e.target.checked;
+    config.saveSettings(volumeSlider.value, libraryFolder, repeatMode, discordRpcEnabled, currentTheme);
+    if (!discordRpcEnabled) {
+        ipcRenderer.send('update-presence', null);
+    } else {
+        if (isPlaying && tracks[currentTrackIndex]) {
+            updateDiscordPresence();
+        }
+    }
+});
+
+themeToggle.addEventListener('change', (e) => {
+    const newTheme = e.target.checked ? 'light' : 'dark';
+    applyTheme(newTheme);
+    config.saveSettings(volumeSlider.value, libraryFolder, repeatMode, discordRpcEnabled, newTheme);
+});
+
+// ========== ОБРАБОТЧИК КЛАВИШ С ПОДДЕРЖКОЙ CTRL+S ==========
 document.addEventListener('keydown', e => {
     if (e.ctrlKey && e.code === 'KeyW') {
         e.preventDefault();
@@ -783,67 +838,90 @@ document.addEventListener('keydown', e => {
     const isLyricsOpen = lyricsModal.style.display === 'flex';
     const isMetadataOpen = metadataModal.classList.contains('show');
     const isShortcutsOpen = shortcutsModal.classList.contains('show');
+    const isSettingsOpen = settingsModal.classList.contains('show');
 
-    if (isShortcutsOpen) {
-        if (e.key === 'Escape') closeShortcuts();
-        else if (e.ctrlKey && e.code === 'KeyA') {
-            e.preventDefault();
-            closeShortcuts();
+    // Escape закрывает любую открытую модалку
+    if (e.key === 'Escape') {
+        if (isSettingsOpen) closeSettingsModal();
+        else if (isShortcutsOpen) closeShortcuts();
+        else if (isLyricsOpen) closeLyrics();
+        else if (isMetadataOpen) closeMetadataModal();
+        return;
+    }
+
+    // Ctrl+S в метаданных: сохранить и закрыть
+    if (e.ctrlKey && e.code === 'KeyS' && isMetadataOpen) {
+        e.preventDefault();
+        metadataSaveBtn.click();
+        return;
+    }
+
+    // Ctrl+S в лирикс: сохранить (но не закрывать)
+    if (e.ctrlKey && e.code === 'KeyS' && isLyricsOpen) {
+        e.preventDefault();
+        lyricsSaveBtn.click();
+        return;
+    }
+
+    // Toggle для настроек (Ctrl+E)
+    if (e.ctrlKey && e.code === 'KeyE') {
+        e.preventDefault();
+        if (isSettingsOpen) {
+            closeSettingsModal();
+        } else if (!isShortcutsOpen && !isLyricsOpen && !isMetadataOpen) {
+            openSettingsModal();
         }
         return;
     }
 
-    if (isLyricsOpen) {
-        if (e.key === 'Escape') closeLyrics();
-        else if (e.ctrlKey && e.code === 'KeyS') {
-            e.preventDefault();
-            lyricsSaveBtn.click();
-        }
-        else if (e.ctrlKey && e.code === 'KeyD') {
-            e.preventDefault();
-            closeLyrics();
-        }
-        return;
-    }
-
-    if (isMetadataOpen) {
-        if (e.key === 'Escape') closeMetadataModal();
-        else if (e.ctrlKey && e.code === 'KeyS') {
-            e.preventDefault();
-            metadataSaveBtn.click();
-        }
-        else if (e.ctrlKey && e.code === 'KeyX') {
-            e.preventDefault();
-            closeMetadataModal();
-        }
-        return;
-    }
-
+    // Toggle для шорткатов (Ctrl+A)
     if (e.ctrlKey && e.code === 'KeyA') {
         e.preventDefault();
-        openShortcuts();
+        if (isShortcutsOpen) {
+            closeShortcuts();
+        } else if (!isSettingsOpen && !isLyricsOpen && !isMetadataOpen) {
+            openShortcuts();
+        }
         return;
     }
+
+    // Toggle для метаданных (Ctrl+X)
+    if (e.ctrlKey && e.code === 'KeyX') {
+        e.preventDefault();
+        if (isMetadataOpen) {
+            closeMetadataModal();
+        } else if (!isSettingsOpen && !isShortcutsOpen && !isLyricsOpen && tracks[currentTrackIndex]) {
+            openMetadataModal();
+        }
+        return;
+    }
+
+    // Toggle для лирикс (Ctrl+D)
+    if (e.ctrlKey && e.code === 'KeyD') {
+        e.preventDefault();
+        if (isLyricsOpen) {
+            closeLyrics();
+        } else if (!isSettingsOpen && !isShortcutsOpen && !isMetadataOpen && tracks[currentTrackIndex]) {
+            openLyrics(tracks[currentTrackIndex]);
+        }
+        return;
+    }
+
+    // Редактирование плейлиста (Ctrl+Shift+E)
     if (e.ctrlKey && e.shiftKey && e.code === 'KeyE') {
         e.preventDefault();
         if (tracks.length) togglePlaylistEditMode();
         return;
     }
-    if (e.ctrlKey && e.code === 'KeyX') {
-        e.preventDefault();
-        if (tracks[currentTrackIndex]) openMetadataModal();
-        return;
-    }
-    if (e.ctrlKey && e.code === 'KeyD') {
-        e.preventDefault();
-        if (tracks[currentTrackIndex]) openLyrics(tracks[currentTrackIndex]);
-        return;
-    }
+
+    // Пробел
     if (e.key === ' ' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         e.preventDefault();
         isPlaying ? pauseTrack() : playTrack();
         return;
     }
+
+    // Стрелки
     if (e.key === 'ArrowRight') {
         e.preventDefault();
         nextTrack();
@@ -855,6 +933,7 @@ document.addEventListener('keydown', e => {
         return;
     }
 });
+// ========== КОНЕЦ ОБРАБОТЧИКА ==========
 
 playBtn.addEventListener('click', playTrack);
 pauseBtn.addEventListener('click', pauseTrack);
@@ -882,7 +961,7 @@ progressSlider.addEventListener('input', e => {
         updateDiscordPresence();
     }
 });
-volumeSlider.addEventListener('input', e => { audio.volume = e.target.value / 100; config.saveSettings(volumeSlider.value, libraryFolder, repeatMode); });
+volumeSlider.addEventListener('input', e => { audio.volume = e.target.value / 100; config.saveSettings(volumeSlider.value, libraryFolder, repeatMode, discordRpcEnabled, currentTheme); });
 audio.addEventListener('ended', () => {
     if (repeatMode === 'one') { audio.currentTime = 0; playTrack(); }
     else if (repeatMode === 'all') nextTrack();
@@ -987,6 +1066,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (repeatMode === 'one') repeatBtn.classList.add('repeat-one');
         else if (repeatMode === 'all') repeatBtn.classList.add('repeat-all');
         document.getElementById('repeat-status').textContent = repeatMode === 'one' ? 'repeat mode: one' : repeatMode === 'all' ? 'repeat mode: all' : 'repeat mode: none';
+    }
+    if (saved.discordRpcEnabled !== undefined) {
+        discordRpcEnabled = saved.discordRpcEnabled;
+        if (discordRpcToggle) discordRpcToggle.checked = discordRpcEnabled;
+    } else {
+        discordRpcEnabled = true;
+        if (discordRpcToggle) discordRpcToggle.checked = true;
+    }
+    if (saved.theme) {
+        currentTheme = saved.theme;
+        applyTheme(currentTheme);
+        if (themeToggle) themeToggle.checked = (currentTheme === 'light');
+    } else {
+        applyTheme('dark');
+        if (themeToggle) themeToggle.checked = false;
     }
     if (saved.libraryPath && fs.existsSync(saved.libraryPath)) {
         libraryFolder = saved.libraryPath;
