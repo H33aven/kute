@@ -39,7 +39,7 @@ function saveSettings(volume, libraryPath, repeatMode, discordRpcEnabled, theme)
                 repeatMode: repeatMode || 'none',
                 discordRpcEnabled: discordRpcEnabled,
                 theme: theme || 'dark',
-                version: '1.5'
+                version: '1.51'
             };
             fs.writeFileSync(CONFIG_FILE, JSON.stringify(settings, null, 2));
         } catch (error) { }
