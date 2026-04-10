@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { version } = require('./package.json');
 
 function getConfigPath() {
     return path.join(os.homedir(), '.config', 'kute-player');
@@ -39,7 +40,7 @@ function saveSettings(volume, libraryPath, repeatMode, discordRpcEnabled, theme)
                 repeatMode: repeatMode || 'none',
                 discordRpcEnabled: discordRpcEnabled,
                 theme: theme || 'dark',
-                version: '1.51'
+                version: version
             };
             fs.writeFileSync(CONFIG_FILE, JSON.stringify(settings, null, 2));
         } catch (error) { }

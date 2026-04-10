@@ -1030,10 +1030,13 @@ body {
     padding: 20px 30px;
     text-align: left;
     width: 340px;
+    max-width: 85%;
     color: #f0f0f0;
     font-size: 1rem;
     line-height: 1.6;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    max-height: 70vh;
+    overflow-y: auto;
+    scrollbar-width: none;
 }
 
 .shortcuts-text h3 {
@@ -1301,12 +1304,6 @@ input:checked+.slider:before {
     .settings-container {
         width: 90%;
         max-width: 320px;
-    }
-
-    .shortcuts-text {
-        width: 90%;
-        max-width: 320px;
-        padding: 15px 20px;
     }
 
     .shortcuts-text li {
@@ -1629,4 +1626,15 @@ body.light-theme .metadata-modal-footer button {
     background: rgba(0, 0, 0, 0.1) !important;
     border-color: #dbdbdb !important;
     color: #dbdbdb !important;
+}
+
+.settings-version-badge {
+    font-size: 0.7rem;
+    font-weight: normal;
+    color: #aaa;
+    margin-left: 8px;
+}
+
+body.light-theme .settings-version-badge {
+    color: #666;
 }

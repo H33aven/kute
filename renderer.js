@@ -2,6 +2,7 @@ const { ipcRenderer } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const mm = require('music-metadata');
+const packageJson = require('./package.json');
 
 const selectLibraryBtn = document.getElementById('select-library-small');
 const trackList = document.getElementById('track-list-small');
@@ -48,8 +49,6 @@ let dropIndicator = null;
 let scrollPosition = 0;
 let dragOverContainer = false;
 let insertAfterIndex = -1;
-
-const coverCache = new Map();
 
 const CONFIG_DIR = path.join(require('os').homedir(), '.config', 'kute-player');
 const LYRICS_DIR = path.join(CONFIG_DIR, 'txts');
@@ -121,7 +120,6 @@ selectLibraryBtn.addEventListener('click', async () => {
         if (folderPath) {
             libraryFolder = folderPath;
             libraryPath.textContent = folderPath.split('/').pop() || folderPath;
-            coverCache.clear();
             loadTracksFromFolder(folderPath);
             config.saveSettings(volumeSlider.value, libraryFolder, repeatMode, discordRpcEnabled, currentTheme);
         }
@@ -160,20 +158,6 @@ async function loadTracksFromFolder(folderPath) {
 
 async function parseTrackFile(folderPath, filename) {
     const filePath = path.join(folderPath, filename);
-    const cacheKey = filePath + fs.statSync(filePath).mtime.getTime();
-    if (coverCache.has(cacheKey)) {
-        const cachedTrack = coverCache.get(cacheKey);
-        if (cachedTrack.cover && cachedTrack.cover.startsWith('blob:')) {
-            try {
-                await fetch(cachedTrack.cover, { method: 'HEAD' });
-                return cachedTrack;
-            } catch {
-                coverCache.delete(cacheKey);
-            }
-        } else {
-            return cachedTrack;
-        }
-    }
     try {
         const metadata = await mm.parseFile(filePath);
         let coverData = null;
@@ -190,7 +174,7 @@ async function parseTrackFile(folderPath, filename) {
                 coverData = URL.createObjectURL(blob);
             } catch (err) { }
         }
-        const track = {
+        return {
             name: metadata.common.title || path.basename(filename, '.mp3'),
             artist: metadata.common.artist || 'Unknown Artist',
             album: metadata.common.album || 'Unknown Album',
@@ -198,8 +182,6 @@ async function parseTrackFile(folderPath, filename) {
             cover: coverData,
             duration: metadata.format.duration || 0
         };
-        coverCache.set(cacheKey, track);
-        return track;
     } catch (err) {
         return {
             name: path.basename(filename, '.mp3'),
@@ -824,7 +806,6 @@ themeToggle.addEventListener('change', (e) => {
     config.saveSettings(volumeSlider.value, libraryFolder, repeatMode, discordRpcEnabled, newTheme);
 });
 
-// ========== ОБРАБОТЧИК КЛАВИШ С ПОДДЕРЖКОЙ CTRL+S ==========
 document.addEventListener('keydown', e => {
     if (e.ctrlKey && e.code === 'KeyW') {
         e.preventDefault();
@@ -840,7 +821,6 @@ document.addEventListener('keydown', e => {
     const isShortcutsOpen = shortcutsModal.classList.contains('show');
     const isSettingsOpen = settingsModal.classList.contains('show');
 
-    // Escape закрывает любую открытую модалку
     if (e.key === 'Escape') {
         if (isSettingsOpen) closeSettingsModal();
         else if (isShortcutsOpen) closeShortcuts();
@@ -849,21 +829,81 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    // Ctrl+S в метаданных: сохранить и закрыть
     if (e.ctrlKey && e.code === 'KeyS' && isMetadataOpen) {
         e.preventDefault();
         metadataSaveBtn.click();
         return;
     }
 
-    // Ctrl+S в лирикс: сохранить (но не закрывать)
     if (e.ctrlKey && e.code === 'KeyS' && isLyricsOpen) {
         e.preventDefault();
         lyricsSaveBtn.click();
         return;
     }
 
-    // Toggle для настроек (Ctrl+E)
+    if (e.ctrlKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (!isNaN(audio.duration)) {
+            audio.currentTime = Math.max(0, audio.currentTime - 5);
+            showNotification(`-5 sec`, 800);
+        }
+        return;
+    }
+    if (e.ctrlKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (!isNaN(audio.duration)) {
+            audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+            showNotification(`+5 sec`, 800);
+        }
+        return;
+    }
+
+    if (e.key === 'ArrowUp' && !isSettingsOpen && !isShortcutsOpen && !isLyricsOpen && !isMetadataOpen) {
+        e.preventDefault();
+        prevTrack();
+        return;
+    }
+    if (e.key === 'ArrowDown' && !isSettingsOpen && !isShortcutsOpen && !isLyricsOpen && !isMetadataOpen) {
+        e.preventDefault();
+        nextTrack();
+        return;
+    }
+
+    if (e.key === 'ArrowRight' && !isSettingsOpen && !isShortcutsOpen && !isLyricsOpen && !isMetadataOpen) {
+        e.preventDefault();
+        let newVol = Math.min(100, audio.volume * 100 + 5);
+        audio.volume = newVol / 100;
+        volumeSlider.value = newVol;
+        config.saveSettings(volumeSlider.value, libraryFolder, repeatMode, discordRpcEnabled, currentTheme);
+        showNotification(`Volume: ${Math.round(newVol)}%`, 800);
+        return;
+    }
+    if (e.key === 'ArrowLeft' && !isSettingsOpen && !isShortcutsOpen && !isLyricsOpen && !isMetadataOpen) {
+        e.preventDefault();
+        let newVol = Math.max(0, audio.volume * 100 - 5);
+        audio.volume = newVol / 100;
+        volumeSlider.value = newVol;
+        config.saveSettings(volumeSlider.value, libraryFolder, repeatMode, discordRpcEnabled, currentTheme);
+        showNotification(`Volume: ${Math.round(newVol)}%`, 800);
+        return;
+    }
+
+    if (e.ctrlKey && e.shiftKey && e.code === 'KeyE') {
+        e.preventDefault();
+        if (tracks.length) togglePlaylistEditMode();
+        return;
+    }
+
+    if (e.ctrlKey && e.code === 'Slash') {
+        e.preventDefault();
+        if (isShortcutsOpen) {
+            closeShortcuts();
+        } else if (!isSettingsOpen && !isLyricsOpen && !isMetadataOpen) {
+            openShortcuts();
+        }
+        return;
+    }
+
     if (e.ctrlKey && e.code === 'KeyE') {
         e.preventDefault();
         if (isSettingsOpen) {
@@ -874,18 +914,6 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    // Toggle для шорткатов (Ctrl+A)
-    if (e.ctrlKey && e.code === 'KeyA') {
-        e.preventDefault();
-        if (isShortcutsOpen) {
-            closeShortcuts();
-        } else if (!isSettingsOpen && !isLyricsOpen && !isMetadataOpen) {
-            openShortcuts();
-        }
-        return;
-    }
-
-    // Toggle для метаданных (Ctrl+X)
     if (e.ctrlKey && e.code === 'KeyX') {
         e.preventDefault();
         if (isMetadataOpen) {
@@ -896,7 +924,6 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    // Toggle для лирикс (Ctrl+D)
     if (e.ctrlKey && e.code === 'KeyD') {
         e.preventDefault();
         if (isLyricsOpen) {
@@ -907,33 +934,20 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    // Редактирование плейлиста (Ctrl+Shift+E)
-    if (e.ctrlKey && e.shiftKey && e.code === 'KeyE') {
+    if (e.ctrlKey && e.code === 'KeyO') {
         e.preventDefault();
-        if (tracks.length) togglePlaylistEditMode();
+        if (!isSettingsOpen && !isShortcutsOpen && !isLyricsOpen && !isMetadataOpen) {
+            selectLibraryBtn.click();
+        }
         return;
     }
 
-    // Пробел
     if (e.key === ' ' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         e.preventDefault();
         isPlaying ? pauseTrack() : playTrack();
         return;
     }
-
-    // Стрелки
-    if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        nextTrack();
-        return;
-    }
-    if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        prevTrack();
-        return;
-    }
 });
-// ========== КОНЕЦ ОБРАБОТЧИКА ==========
 
 playBtn.addEventListener('click', playTrack);
 pauseBtn.addEventListener('click', pauseTrack);
@@ -1046,8 +1060,6 @@ function updateTrackAfterSave(track, title, artist, album, coverChanged) {
         if (track.cover?.startsWith('blob:')) URL.revokeObjectURL(track.cover);
         track.cover = URL.createObjectURL(currentCoverFile);
     }
-    const cacheKey = track.path + fs.statSync(track.path).mtime.getTime();
-    coverCache.set(cacheKey, track);
     const idx = originalTracks.findIndex(t => t.path === track.path);
     if (idx !== -1) originalTracks[idx] = { ...track };
     updateTrackInfo(currentTrackIndex);
@@ -1085,13 +1097,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saved.libraryPath && fs.existsSync(saved.libraryPath)) {
         libraryFolder = saved.libraryPath;
         libraryPath.textContent = path.basename(libraryFolder);
-        coverCache.clear();
         loadTracksFromFolder(libraryFolder);
     } else if (saved.libraryPath) {
         libraryPath.textContent = 'Path not found';
     }
     initPlaylistEditing();
     updateSizes();
+    const versionSpan = document.getElementById('settings-version');
+    if (versionSpan) versionSpan.textContent = `v${packageJson.version}`;
 });
 
 editMetadataBtn.addEventListener('click', openMetadataModal);
@@ -1103,6 +1116,6 @@ metadataCancelBtn.addEventListener('click', closeMetadataModal);
 window.addEventListener('click', e => { if (e.target === metadataModal) closeMetadataModal(); });
 window.addEventListener('resize', updateSizes);
 window.addEventListener('beforeunload', () => {
-    coverCache.forEach(t => { if (t.cover?.startsWith('blob:')) URL.revokeObjectURL(t.cover); });
+    tracks.forEach(t => { if (t.cover?.startsWith('blob:')) URL.revokeObjectURL(t.cover); });
     if (audio.src?.startsWith('blob:')) URL.revokeObjectURL(audio.src);
 });
