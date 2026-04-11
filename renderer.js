@@ -47,7 +47,6 @@ let isPlaylistEditing = false;
 let draggedItem = null;
 let dropIndicator = null;
 let scrollPosition = 0;
-let dragOverContainer = false;
 let insertAfterIndex = -1;
 
 const CONFIG_DIR = path.join(require('os').homedir(), '.config', 'kute-player');
@@ -272,6 +271,8 @@ function loadTrack(index, autoPlay = true) {
     }, { once: true });
     if (autoPlay && isPlaying) playTrack();
     else { playBtn.style.display = 'flex'; pauseBtn.style.display = 'none'; }
+    updateMediaSession(track);
+    updatePlaybackState(isPlaying ? 'playing' : 'paused');
 }
 
 function updateTrackInfo(index) {
@@ -327,6 +328,8 @@ function playTrack() {
         playBtn.style.display = 'none';
         pauseBtn.style.display = 'flex';
         isExternalControl = false;
+        updatePlaybackState('playing');
+        updatePlaybackState('paused');
     }).catch(() => { showNotification('Playback failed'); });
 }
 
@@ -1069,6 +1072,26 @@ function updateTrackAfterSave(track, title, artist, album, coverChanged) {
     closeMetadataModal();
 }
 
+function updateMediaSession(track) {
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: track.name,
+            artist: track.artist,
+            album: track.album,
+            artwork: track.cover ? [{ src: track.cover, sizes: '512x512', type: 'image/jpeg' }] : []
+        });
+        console.log('MPRIS metadata updated');
+    } else {
+        console.warn('MediaSession API is not supported');
+    }
+}
+
+function updatePlaybackState(state) {
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = state;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const saved = config.loadSettings();
     if (saved.volume >= 0 && saved.volume <= 100) { audio.volume = saved.volume / 100; volumeSlider.value = saved.volume; }
@@ -1105,6 +1128,25 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSizes();
     const versionSpan = document.getElementById('settings-version');
     if (versionSpan) versionSpan.textContent = `v${packageJson.version}`;
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', () => playTrack());
+        navigator.mediaSession.setActionHandler('pause', () => pauseTrack());
+        navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
+        navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
+        navigator.mediaSession.setActionHandler('stop', () => {
+            pauseTrack();
+        });
+        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+            if (!isNaN(audio.duration)) {
+                audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset || 5));
+            }
+        });
+        navigator.mediaSession.setActionHandler('seekforward', (details) => {
+            if (!isNaN(audio.duration)) {
+                audio.currentTime = Math.min(audio.duration, audio.currentTime + (details.seekOffset || 5));
+            }
+        });
+    }
 });
 
 editMetadataBtn.addEventListener('click', openMetadataModal);
