@@ -84,13 +84,21 @@ if (!fs.existsSync(LYRICS_DIR)) fs.mkdirSync(LYRICS_DIR, { recursive: true });
 let presenceStartTimestamp = null;
 
 function updateDiscordPresence() {
-    if (!discordRpcEnabled) return;
+    console.log('[Renderer] updateDiscordPresence called, discordRpcEnabled =', discordRpcEnabled, 'isPlaying =', isPlaying);
+    if (!discordRpcEnabled) {
+        console.log('[Renderer] Discord RPC disabled by user');
+        return;
+    }
     if (!isPlaying) {
+        console.log('[Renderer] Sending null presence (paused)');
         ipcRenderer.send('update-presence', null);
         return;
     }
     const track = tracks[currentTrackIndex];
-    if (!track) return;
+    if (!track) {
+        console.log('[Renderer] No track, skipping presence');
+        return;
+    }
     const activity = {
         details: track.name,
         state: track.artist,
@@ -98,6 +106,7 @@ function updateDiscordPresence() {
         largeImageText: 'Kute Player',
         startTimestamp: Math.floor(Date.now() / 1000 - audio.currentTime)
     };
+    console.log('[Renderer] Sending activity:', activity);
     ipcRenderer.send('update-presence', activity);
 }
 
@@ -937,6 +946,12 @@ document.addEventListener('keydown', e => {
         return;
     }
 
+    if (e.ctrlKey && e.code === 'KeyA') {
+        e.preventDefault();
+        const lib = document.querySelector('.library-section');
+        if (lib) lib.classList.toggle('collapsed');
+    }
+
     if (e.ctrlKey && e.code === 'KeyO') {
         e.preventDefault();
         if (!isSettingsOpen && !isShortcutsOpen && !isLyricsOpen && !isMetadataOpen) {
@@ -1090,6 +1105,14 @@ function updatePlaybackState(state) {
     if ('mediaSession' in navigator) {
         navigator.mediaSession.playbackState = state;
     }
+}
+
+const grip = document.getElementById('libraryGrip');
+const librarySection = document.querySelector('.library-section');
+if (grip && librarySection) {
+    grip.addEventListener('click', () => {
+        librarySection.classList.toggle('collapsed');
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

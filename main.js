@@ -19,6 +19,7 @@ let mainWindow;
 let rpc = null;
 let reconnectTimer = null;
 const clientId = '1488264103607926834';
+process.noDeprecation = true;
 
 async function initDiscordRPC() {
     if (rpc) {
@@ -27,10 +28,15 @@ async function initDiscordRPC() {
     }
     if (reconnectTimer) clearTimeout(reconnectTimer);
     try {
+        console.log('[RPC] Attempting to connect with clientId:', clientId);
         rpc = new DiscordRPC.Client({ transport: 'ipc' });
-        rpc.on('ready', () => { });
+        rpc.on('ready', () => {
+            console.log('[RPC] Connected to Discord via IPC');
+        });
         await rpc.login({ clientId });
+        console.log('[RPC] Login successful');
     } catch (err) {
+        console.error('[RPC] Login failed:', err);
         reconnectTimer = setTimeout(initDiscordRPC, 5000);
     }
 }
@@ -87,10 +93,15 @@ ipcMain.handle('select-folder', async () => {
 });
 
 ipcMain.on('update-presence', (event, data) => {
-    if (!rpc) return;
+    if (!rpc) {
+        console.log('[RPC] update-presence ignored: rpc not ready');
+        return;
+    }
     if (data === null) {
+        console.log('[RPC] Clearing activity');
         rpc.clearActivity();
     } else {
+        console.log('[RPC] Setting activity:', data);
         rpc.setActivity(data);
     }
 });

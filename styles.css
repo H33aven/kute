@@ -1638,3 +1638,23 @@ body.light-theme .metadata-modal-footer button {
 body.light-theme .settings-version-badge {
     color: #666;
 }
+.library-grip {
+    width: 6px;
+    background: rgba(100, 100, 100, 0.2);
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.library-grip:hover {
+    background: rgba(150, 150, 150, 0.5);
+}
+
+.library-section {
+    transition: width 0.3s ease;
+    width: clamp(260px, 28vw, 380px);
+    flex-shrink: 0;
+}
+.library-section.collapsed {
+    width: 0 !important;
+    overflow: hidden;
+}
