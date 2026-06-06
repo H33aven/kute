@@ -946,7 +946,7 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    if (e.ctrlKey && e.code === 'KeyA') {
+    if (e.ctrlKey && e.code === 'KeyZ') {
         e.preventDefault();
         const lib = document.querySelector('.library-section');
         if (lib) lib.classList.toggle('collapsed');
