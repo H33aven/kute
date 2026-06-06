@@ -30,15 +30,12 @@ async function initDiscordRPC() {
     rpcReady = false;
     try {
         rpc = new Client({ clientId });
-        // Событие ready может не понадобиться, но оставим для логов
         rpc.on('ready', () => {
             console.log('[RPC] ready event fired');
             rpcReady = true;
         });
         await rpc.connect();
         console.log('[RPC] Login successful');
-        // После connect клиент должен быть готов
-        // Небольшая задержка на случай, если user ещё не инициализирован
         setTimeout(() => {
             if (rpc && rpc.user) {
                 rpcReady = true;
