@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
-const DiscordRPC = require('discord-rpc');
+const { Client } = require('@xhayper/discord-rpc');
 
 app.commandLine.appendSwitch('enable-features', 'UseOzonePlatform');
 app.commandLine.appendSwitch('ozone-platform', 'wayland');
@@ -16,28 +16,40 @@ app.commandLine.appendSwitch('enable-wayland-ime');
 app.commandLine.appendSwitch('disable-features', 'UseChromeOSDirectVideoDecoder');
 
 let mainWindow;
-let rpc = null;
 let reconnectTimer = null;
+let rpc = null;
+let rpcReady = false;
 const clientId = '1488264103607926834';
 process.noDeprecation = true;
 
 async function initDiscordRPC() {
     if (rpc) {
-        rpc.destroy();
+        try { rpc.destroy(); } catch (e) {}
         rpc = null;
     }
-    if (reconnectTimer) clearTimeout(reconnectTimer);
+    rpcReady = false;
     try {
-        console.log('[RPC] Attempting to connect with clientId:', clientId);
-        rpc = new DiscordRPC.Client({ transport: 'ipc' });
+        rpc = new Client({ clientId });
+        // Событие ready может не понадобиться, но оставим для логов
         rpc.on('ready', () => {
-            console.log('[RPC] Connected to Discord via IPC');
+            console.log('[RPC] ready event fired');
+            rpcReady = true;
         });
-        await rpc.login({ clientId });
+        await rpc.connect();
         console.log('[RPC] Login successful');
+        // После connect клиент должен быть готов
+        // Небольшая задержка на случай, если user ещё не инициализирован
+        setTimeout(() => {
+            if (rpc && rpc.user) {
+                rpcReady = true;
+                console.log('[RPC] Client is ready');
+            } else {
+                console.warn('[RPC] Client connected but user object not available');
+            }
+        }, 500);
     } catch (err) {
-        console.error('[RPC] Login failed:', err);
-        reconnectTimer = setTimeout(initDiscordRPC, 5000);
+        console.error('[RPC] Failed:', err);
+        setTimeout(initDiscordRPC, 5000);
     }
 }
 
@@ -93,16 +105,18 @@ ipcMain.handle('select-folder', async () => {
 });
 
 ipcMain.on('update-presence', (event, data) => {
-    if (!rpc) {
-        console.log('[RPC] update-presence ignored: rpc not ready');
+    if (!rpc || !rpcReady) {
+        console.log('[RPC] Not ready, ignoring update-presence');
+        return;
+    }
+    if (!rpc.user) {
+        console.log('[RPC] No user object yet');
         return;
     }
     if (data === null) {
-        console.log('[RPC] Clearing activity');
-        rpc.clearActivity();
+        rpc.user.clearActivity().catch(err => console.error('[RPC] clearActivity error:', err));
     } else {
-        console.log('[RPC] Setting activity:', data);
-        rpc.setActivity(data);
+        rpc.user.setActivity(data).catch(err => console.error('[RPC] setActivity error:', err));
     }
 });
 
@@ -126,5 +140,7 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
     if (reconnectTimer) clearTimeout(reconnectTimer);
-    if (rpc) rpc.destroy();
+    if (rpc) {
+        try { rpc.destroy(); } catch (e) {}
+    }
 });

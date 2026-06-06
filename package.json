@@ -1,6 +1,6 @@
 {
   "name": "kute",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "kute-player",
   "main": "main.js",
   "homepage": "https://github.com/H33aven/kute",
@@ -20,7 +20,7 @@
   ],
   "license": "ISC",
   "dependencies": {
-    "discord-rich-presence": "^0.0.8",
+    "@xhayper/discord-rpc": "^1.3.4",
     "music-metadata": "^11.10.5",
     "node-id3": "^0.2.8"
   },
@@ -57,11 +57,16 @@
     "appId": "com.kute.player",
     "productName": "Kute",
     "win": {
-      "target": ["portable"],
+      "target": [
+        "portable"
+      ],
       "artifactName": "Kute-${version}-portable.exe"
     },
     "linux": {
-      "target": ["pacman", "AppImage"],
+      "target": [
+        "pacman",
+        "AppImage"
+      ],
       "category": "AudioVideo"
     }
   }
